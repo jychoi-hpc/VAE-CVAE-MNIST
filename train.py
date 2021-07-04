@@ -1,15 +1,16 @@
+import argparse
 import os
 import time
-import torch
-import argparse
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from torchvision import transforms
-from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader
 from collections import defaultdict
 from datetime import datetime
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import torch
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.datasets import MNIST
 
 from models import VAE
 
@@ -42,7 +43,7 @@ def main(args):
         latent_size=args.latent_size,
         decoder_layer_sizes=args.decoder_layer_sizes,
         conditional=args.conditional,
-        num_labels=10 if args.conditional else 0,
+        num_labels=1 if args.conditional else 0,
     ).to(device)
 
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
@@ -55,7 +56,9 @@ def main(args):
 
         for iteration, (x, y) in enumerate(data_loader):
 
-            x, y = x.to(device), y.to(device)
+            x = x.to(device)
+            y = y + 0.1 * torch.randn(y.shape)
+            y = y.to(device)
 
             if args.conditional:
                 recon_x, mean, log_var, z = vae(x, y)
@@ -84,7 +87,9 @@ def main(args):
                 )
 
                 if args.conditional:
-                    c = torch.arange(0, 10).long().unsqueeze(1).to(device)
+                    c_sample = torch.linspace(-0.1, 0.1, 7)
+                    c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
+                    c = c.to(device)
                     z = torch.randn([c.size(0), args.latent_size]).to(device)
                     x = vae.inference(z, c=c)
                 else:
@@ -93,13 +98,13 @@ def main(args):
 
                 plt.figure()
                 plt.figure(figsize=(5, 10))
-                for p in range(10):
-                    plt.subplot(5, 2, p + 1)
+                for p in range(10 * c_sample.numel()):
+                    plt.subplot(10, c_sample.numel(), p + 1)
                     if args.conditional:
                         plt.text(
                             0,
                             0,
-                            "c={:d}".format(c[p].item()),
+                            "c={:.2f}".format(c[p].item()),
                             color="black",
                             backgroundcolor="white",
                             fontsize=8,
@@ -123,19 +128,19 @@ def main(args):
                 plt.clf()
                 plt.close("all")
 
-        df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
-        g = sns.lmplot(
-            x="x",
-            y="y",
-            hue="label",
-            data=df.groupby("label").head(100),
-            fit_reg=False,
-            legend=True,
-        )
-        g.savefig(
-            os.path.join(args.fig_root, str(ts), "E{:d}-Dist.png".format(epoch)),
-            dpi=300,
-        )
+        # df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
+        # g = sns.lmplot(
+        #     x="x",
+        #     y="y",
+        #     hue="label",
+        #     data=df.groupby("label").head(100),
+        #     fit_reg=False,
+        #     legend=True,
+        # )
+        # g.savefig(
+        #     os.path.join(args.fig_root, str(ts), "E{:d}-Dist.png".format(epoch)),
+        #     dpi=300,
+        # )
 
 
 if __name__ == "__main__":

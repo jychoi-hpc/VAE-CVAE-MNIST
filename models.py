@@ -80,7 +80,7 @@ class Encoder(nn.Module):
     def forward(self, x, c=None):
 
         if self.conditional:
-            c = idx2onehot(c, n=10)
+            c = c.view(-1, 1)
             x = torch.cat((x, c), dim=-1)
 
         x = self.MLP(x)
@@ -118,7 +118,7 @@ class Decoder(nn.Module):
     def forward(self, z, c):
 
         if self.conditional:
-            c = idx2onehot(c, n=10)
+            c = c.view(-1, 1)
             z = torch.cat((z, c), dim=-1)
 
         x = self.MLP(z)
