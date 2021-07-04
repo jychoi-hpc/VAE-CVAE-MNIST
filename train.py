@@ -9,6 +9,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 from collections import defaultdict
+from datetime import datetime
 
 from models import VAE
 
@@ -21,7 +22,7 @@ def main(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ts = time.time()
+    ts = datetime.now().strftime("%y%m%dT%H%M%S")
 
     dataset = MNIST(
         root="data", train=True, transform=transforms.ToTensor(), download=True
