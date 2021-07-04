@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
@@ -49,6 +50,7 @@ def main(args):
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
 
     logs = defaultdict(list)
+    writer = SummaryWriter()
 
     for epoch in range(args.epochs):
 
@@ -72,7 +74,7 @@ def main(args):
                 tracker_epoch[id]["label"] = yi.item()
 
             loss = loss_fn(recon_x, x, mean, log_var)
-
+            writer.add_scalar("Loss/train", loss, epoch * len(data_loader) + iteration)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -141,6 +143,8 @@ def main(args):
         #     os.path.join(args.fig_root, str(ts), "E{:d}-Dist.png".format(epoch)),
         #     dpi=300,
         # )
+
+    writer.flush()
 
 
 if __name__ == "__main__":
