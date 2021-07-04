@@ -9,5 +9,5 @@ def idx2onehot(idx, n):
         idx = idx.unsqueeze(1)
     onehot = torch.zeros(idx.size(0), n).to(idx.device)
     onehot.scatter_(1, idx, 1)
-    
+
     return onehot

@@ -5,9 +5,14 @@ from utils import idx2onehot
 
 
 class VAE(nn.Module):
-
-    def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes,
-                 conditional=False, num_labels=0):
+    def __init__(
+        self,
+        encoder_layer_sizes,
+        latent_size,
+        decoder_layer_sizes,
+        conditional=False,
+        num_labels=0,
+    ):
 
         super().__init__()
 
@@ -21,14 +26,16 @@ class VAE(nn.Module):
         self.latent_size = latent_size
 
         self.encoder = Encoder(
-            encoder_layer_sizes, latent_size, conditional, num_labels)
+            encoder_layer_sizes, latent_size, conditional, num_labels
+        )
         self.decoder = Decoder(
-            decoder_layer_sizes, latent_size, conditional, num_labels)
+            decoder_layer_sizes, latent_size, conditional, num_labels
+        )
 
     def forward(self, x, c=None):
 
         if x.dim() > 2:
-            x = x.view(-1, 28*28)
+            x = x.view(-1, 28 * 28)
 
         means, log_var = self.encoder(x, c)
         z = self.reparameterize(means, log_var)
@@ -51,7 +58,6 @@ class VAE(nn.Module):
 
 
 class Encoder(nn.Module):
-
     def __init__(self, layer_sizes, latent_size, conditional, num_labels):
 
         super().__init__()
@@ -64,7 +70,8 @@ class Encoder(nn.Module):
 
         for i, (in_size, out_size) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
             self.MLP.add_module(
-                name="L{:d}".format(i), module=nn.Linear(in_size, out_size))
+                name="L{:d}".format(i), module=nn.Linear(in_size, out_size)
+            )
             self.MLP.add_module(name="A{:d}".format(i), module=nn.ReLU())
 
         self.linear_means = nn.Linear(layer_sizes[-1], latent_size)
@@ -85,7 +92,6 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-
     def __init__(self, layer_sizes, latent_size, conditional, num_labels):
 
         super().__init__()
@@ -98,10 +104,13 @@ class Decoder(nn.Module):
         else:
             input_size = latent_size
 
-        for i, (in_size, out_size) in enumerate(zip([input_size]+layer_sizes[:-1], layer_sizes)):
+        for i, (in_size, out_size) in enumerate(
+            zip([input_size] + layer_sizes[:-1], layer_sizes)
+        ):
             self.MLP.add_module(
-                name="L{:d}".format(i), module=nn.Linear(in_size, out_size))
-            if i+1 < len(layer_sizes):
+                name="L{:d}".format(i), module=nn.Linear(in_size, out_size)
+            )
+            if i + 1 < len(layer_sizes):
                 self.MLP.add_module(name="A{:d}".format(i), module=nn.ReLU())
             else:
                 self.MLP.add_module(name="sigmoid", module=nn.Sigmoid())
