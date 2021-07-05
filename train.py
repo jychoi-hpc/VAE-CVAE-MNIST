@@ -1,5 +1,7 @@
 import argparse
+import logging
 import os
+import sys
 import time
 from collections import defaultdict
 from datetime import datetime
@@ -9,6 +11,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 import torch.nn.functional as F
+import yaml
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
@@ -26,6 +29,26 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     ts = datetime.now().strftime("%y%m%dT%H%M%S")
+    logdir = os.path.join(args.log_root, str(ts))
+    tbdir = os.path.join(logdir, "tb")
+    # Make logging dirs
+    if not (os.path.exists(os.path.join(args.log_root))):
+        os.mkdir(os.path.join(args.log_root))
+    if not os.path.exists(logdir):
+        os.mkdir(logdir)
+        os.mkdir(tbdir)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(os.path.join(logdir, "run.log")),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    logging.info(vars(args))
+    writer = SummaryWriter(log_dir=tbdir)
+    with open(os.path.join(logdir, "hyperparameters.yml"), "w") as outfile:
+        yaml.dump(vars(args), outfile)
 
     dataset = MNIST(
         root="data", train=True, transform=transforms.ToTensor(), download=True
@@ -56,7 +79,6 @@ def main(args):
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
 
     logs = defaultdict(list)
-    writer = SummaryWriter()
 
     for epoch in range(args.epochs):
 
@@ -88,7 +110,7 @@ def main(args):
             logs["loss"].append(loss.item())
 
             if iteration % args.print_every == 0 or iteration == len(data_loader) - 1:
-                print(
+                logging.info(
                     "Epoch {:02d}/{:02d} Batch {:04d}/{:d}, Loss {:9.4f}".format(
                         epoch, args.epochs, iteration, len(data_loader) - 1, loss.item()
                     )
@@ -120,14 +142,9 @@ def main(args):
                     plt.imshow(x[p].view(28, 28).cpu().data.numpy())
                     plt.axis("off")
 
-                if not os.path.exists(os.path.join(args.fig_root, str(ts))):
-                    if not (os.path.exists(os.path.join(args.fig_root))):
-                        os.mkdir(os.path.join(args.fig_root))
-                    os.mkdir(os.path.join(args.fig_root, str(ts)))
-
                 plt.savefig(
                     os.path.join(
-                        args.fig_root,
+                        args.log_root,
                         str(ts),
                         "E{:d}I{:d}.png".format(epoch, iteration),
                     ),
@@ -146,7 +163,7 @@ def main(args):
         #     legend=True,
         # )
         # g.savefig(
-        #     os.path.join(args.fig_root, str(ts), "E{:d}-Dist.png".format(epoch)),
+        #     os.path.join(args.log_root, str(ts), "E{:d}-Dist.png".format(epoch)),
         #     dpi=300,
         # )
 
@@ -164,7 +181,7 @@ if __name__ == "__main__":
     parser.add_argument("--decoder_layer_sizes", type=list, default=[256, 784])
     parser.add_argument("--latent_size", type=int, default=2)
     parser.add_argument("--print_every", type=int, default=100)
-    parser.add_argument("--fig_root", type=str, default="figs")
+    parser.add_argument("--log_root", type=str, default="logs")
     parser.add_argument(
         "--reconstruction_error",
         type=str,
