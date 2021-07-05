@@ -32,12 +32,17 @@ def main(args):
     data_loader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
 
     def loss_fn(recon_x, x, mean, log_var):
-        BCE = torch.nn.functional.binary_cross_entropy(
-            recon_x.view(-1, 28 * 28), x.view(-1, 28 * 28), reduction="sum"
-        )
+        if args.reconstruction_error == "BCE":
+            recon_error = torch.nn.functional.binary_cross_entropy(
+                recon_x.view(-1, 28 * 28), x.view(-1, 28 * 28), reduction="sum"
+            )
+        elif args.reconstruction_error == "MSE":
+            recon_error = torch.nn.functional.mse_loss(
+                recon_x.view(-1, 28 * 28), x.view(-1, 28 * 28), reduction="sum"
+            )
         KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
 
-        return (BCE + KLD) / x.size(0)
+        return (recon_error + KLD) / x.size(0)
 
     vae = VAE(
         encoder_layer_sizes=args.encoder_layer_sizes,
@@ -159,6 +164,12 @@ if __name__ == "__main__":
     parser.add_argument("--latent_size", type=int, default=2)
     parser.add_argument("--print_every", type=int, default=100)
     parser.add_argument("--fig_root", type=str, default="figs")
+    parser.add_argument(
+        "--reconstruction_error",
+        type=str,
+        default="BCE",
+        choices=["BCE", "MSE"],
+    )
     parser.add_argument("--conditional", action="store_true")
 
     args = parser.parse_args()
