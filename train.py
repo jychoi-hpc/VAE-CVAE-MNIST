@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
@@ -33,11 +34,11 @@ def main(args):
 
     def loss_fn(recon_x, x, mean, log_var):
         if args.reconstruction_error == "BCE":
-            recon_error = torch.nn.functional.binary_cross_entropy(
+            recon_error = F.binary_cross_entropy(
                 recon_x.view(-1, 28 * 28), x.view(-1, 28 * 28), reduction="sum"
             )
         elif args.reconstruction_error == "MSE":
-            recon_error = torch.nn.functional.mse_loss(
+            recon_error = F.mse_loss(
                 recon_x.view(-1, 28 * 28), x.view(-1, 28 * 28), reduction="sum"
             )
         KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
