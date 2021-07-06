@@ -99,7 +99,7 @@ def main(args):
                 id = len(tracker_epoch)
                 tracker_epoch[id]["x"] = z[i, 0].item()
                 tracker_epoch[id]["y"] = z[i, 1].item()
-                tracker_epoch[id]["label"] = yi.item()
+                tracker_epoch[id]["label"] = round(yi.item())
 
             loss = loss_fn(recon_x, x, mean, log_var)
             writer.add_scalar("Loss/train", loss, epoch * len(data_loader) + iteration)
@@ -153,19 +153,19 @@ def main(args):
                 plt.clf()
                 plt.close("all")
 
-        # df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
-        # g = sns.lmplot(
-        #     x="x",
-        #     y="y",
-        #     hue="label",
-        #     data=df.groupby("label").head(100),
-        #     fit_reg=False,
-        #     legend=True,
-        # )
-        # g.savefig(
-        #     os.path.join(args.log_root, str(ts), "E{:d}-Dist.png".format(epoch)),
-        #     dpi=300,
-        # )
+        df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
+        g = sns.lmplot(
+            x="x",
+            y="y",
+            hue="label",
+            data=df.groupby("label").head(100),
+            fit_reg=False,
+            legend=True,
+        )
+        g.savefig(
+            os.path.join(args.log_root, str(ts), "E{:d}-Dist.png".format(epoch)),
+            dpi=300,
+        )
 
     writer.flush()
 
