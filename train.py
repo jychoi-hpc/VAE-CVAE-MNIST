@@ -83,7 +83,8 @@ def main(args):
     for epoch in range(args.epochs):
 
         # tracker_epoch = defaultdict(lambda: defaultdict(dict))
-
+        if args.dry_run and epoch > 0:
+            break
         for iteration, (x, y) in enumerate(data_loader):
 
             x = x.to(device)
@@ -190,6 +191,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--conditional", action="store_true")
     parser.add_argument("--extend_angles", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
 
     args = parser.parse_args()
 
