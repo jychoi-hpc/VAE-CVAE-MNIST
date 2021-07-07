@@ -35,7 +35,7 @@ class VAE(nn.Module):
     def forward(self, x, c=None):
 
         if x.dim() > 2:
-            x = x.view(-1, 28 * 28)
+            x = x.view(-1, 39 * 39)
 
         means, log_var = self.encoder(x, c)
         z = self.reparameterize(means, log_var)
@@ -80,8 +80,7 @@ class Encoder(nn.Module):
     def forward(self, x, c=None):
 
         if self.conditional:
-            c = c.view(-1, 1)
-            x = torch.cat((x, c), dim=-1)
+            x = torch.cat((x, c), dim=1)
 
         x = self.MLP(x)
 
@@ -118,8 +117,7 @@ class Decoder(nn.Module):
     def forward(self, z, c):
 
         if self.conditional:
-            c = c.view(-1, 1)
-            z = torch.cat((z, c), dim=-1)
+            z = torch.cat((z, c), dim=1)
 
         x = self.MLP(z)
 

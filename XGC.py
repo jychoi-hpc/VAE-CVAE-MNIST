@@ -200,7 +200,8 @@ def XGC():
         lx.append(Zif[i, np.newaxis, :, :])
         ly.append(da[i, :])
 
-    X_full, y_full = torch.tensor(lx), torch.tensor(ly)
+    # Pytorch seems to expect a float32 default datatype.
+    X_full, y_full = torch.tensor(lx).squeeze(), torch.tensor(ly, dtype=torch.float32)
     dataset = TensorDataset(X_full, y_full)
 
     return dataset

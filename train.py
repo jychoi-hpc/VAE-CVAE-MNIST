@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import MNIST
+from XGC import XGC
 
 from models import VAE
 
@@ -50,19 +51,17 @@ def main(args):
     with open(os.path.join(logdir, "hyperparameters.yml"), "w") as outfile:
         yaml.dump(vars(args), outfile)
 
-    dataset = MNIST(
-        root="data", train=True, transform=transforms.ToTensor(), download=True
-    )
+    dataset = XGC()
     data_loader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
 
     def loss_fn(recon_x, x, mean, log_var):
         if args.reconstruction_error == "BCE":
             recon_error = F.binary_cross_entropy(
-                recon_x.view(-1, 28 * 28), x.view(-1, 28 * 28), reduction="sum"
+                recon_x.view(-1, 39 * 39), x.view(-1, 39 * 39), reduction="sum"
             )
         elif args.reconstruction_error == "MSE":
             recon_error = F.mse_loss(
-                recon_x.view(-1, 28 * 28), x.view(-1, 28 * 28), reduction="sum"
+                recon_x.view(-1, 39 * 39), x.view(-1, 39 * 39), reduction="sum"
             )
         KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
 
@@ -73,7 +72,7 @@ def main(args):
         latent_size=args.latent_size,
         decoder_layer_sizes=args.decoder_layer_sizes,
         conditional=args.conditional,
-        num_labels=1 if args.conditional else 0,
+        num_labels=2 if args.conditional else 0,
     ).to(device)
 
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
@@ -87,7 +86,7 @@ def main(args):
         for iteration, (x, y) in enumerate(data_loader):
 
             x = x.to(device)
-            y = y + 0.1 * torch.randn(y.shape)
+            # y = y + 0.1 * torch.randn(y.shape)
             y = y.to(device)
 
             if args.conditional:
@@ -155,16 +154,16 @@ def main(args):
 
         # df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
         # g = sns.lmplot(
-            # x="x",
-            # y="y",
-            # hue="label",
-            # data=df.groupby("label").head(100),
-            # fit_reg=False,
-            # legend=True,
+        # x="x",
+        # y="y",
+        # hue="label",
+        # data=df.groupby("label").head(100),
+        # fit_reg=False,
+        # legend=True,
         # )
         # g.savefig(
-            # os.path.join(args.log_root, str(ts), "E{:d}-Dist.png".format(epoch)),
-            # dpi=300,
+        # os.path.join(args.log_root, str(ts), "E{:d}-Dist.png".format(epoch)),
+        # dpi=300,
         # )
 
     writer.flush()
@@ -177,8 +176,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--learning_rate", type=float, default=0.001)
-    parser.add_argument("--encoder_layer_sizes", type=list, default=[784, 256])
-    parser.add_argument("--decoder_layer_sizes", type=list, default=[256, 784])
+    parser.add_argument("--encoder_layer_sizes", type=list, default=[39 * 39, 256])
+    parser.add_argument("--decoder_layer_sizes", type=list, default=[256, 39 * 39])
     parser.add_argument("--latent_size", type=int, default=2)
     parser.add_argument("--print_every", type=int, default=100)
     parser.add_argument("--log_root", type=str, default="logs")
