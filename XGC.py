@@ -165,7 +165,7 @@ def read_f0(
     return (Z0, Zif, zmu, zsig, zmin, zmax, zlb)
 
 
-def XGC():
+def XGC(extend_angles: bool = False):
     """
     Returns TensorDataset, for input into DataLoader
     """
@@ -199,6 +199,19 @@ def XGC():
     for i in range(len(zlb)):
         lx.append(Zif[i, np.newaxis, :, :])
         ly.append(da[i, :])
+
+    if extend_angles:
+        # Adds on a copy of the dataset with all angles shifted up by 2*pi.
+        da[:, -1] += 2 * np.pi
+        for i in range(len(zlb)):
+            lx.append(Zif[i, np.newaxis, :, :])
+            ly.append(da[i, :])
+        # Adds on a copy of the dataset with all angles shifted down by 2*pi.
+        # I subtract by 4pi because the operation does the subtraction in-place.
+        da[:, -1] -= 4 * np.pi
+        for i in range(len(zlb)):
+            lx.append(Zif[i, np.newaxis, :, :])
+            ly.append(da[i, :])
 
     # Pytorch seems to expect a float32 default datatype.
     X_full, y_full = torch.tensor(lx).squeeze(), torch.tensor(ly, dtype=torch.float32)
