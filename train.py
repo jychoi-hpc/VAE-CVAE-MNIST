@@ -82,7 +82,7 @@ def main(args):
 
     for epoch in range(args.epochs):
 
-        tracker_epoch = defaultdict(lambda: defaultdict(dict))
+        # tracker_epoch = defaultdict(lambda: defaultdict(dict))
 
         for iteration, (x, y) in enumerate(data_loader):
 
@@ -95,11 +95,11 @@ def main(args):
             else:
                 recon_x, mean, log_var, z = vae(x)
 
-            for i, yi in enumerate(y):
-                id = len(tracker_epoch)
-                tracker_epoch[id]["x"] = z[i, 0].item()
-                tracker_epoch[id]["y"] = z[i, 1].item()
-                tracker_epoch[id]["label"] = round(yi.item())
+            # for i, yi in enumerate(y):
+            #     id = len(tracker_epoch)
+            #     tracker_epoch[id]["x"] = z[i, 0].item()
+            #     tracker_epoch[id]["y"] = z[i, 1].item()
+            #     tracker_epoch[id]["label"] = round(yi.item())
 
             loss = loss_fn(recon_x, x, mean, log_var)
             writer.add_scalar("Loss/train", loss, epoch * len(data_loader) + iteration)
@@ -116,56 +116,56 @@ def main(args):
                     )
                 )
 
-                if args.conditional:
-                    c_sample = torch.linspace(-0.1, 0.1, 7)
-                    c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
-                    c = c.to(device)
-                    z = torch.randn([c.size(0), args.latent_size]).to(device)
-                    x = vae.inference(z, c=c)
-                else:
-                    z = torch.randn([10, args.latent_size]).to(device)
-                    x = vae.inference(z)
+                # if args.conditional:
+                #     c_sample = torch.linspace(-0.1, 0.1, 7)
+                #     c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
+                #     c = c.to(device)
+                #     z = torch.randn([c.size(0), args.latent_size]).to(device)
+                #     x = vae.inference(z, c=c)
+                # else:
+                #     z = torch.randn([10, args.latent_size]).to(device)
+                #     x = vae.inference(z)
 
-                plt.figure()
-                plt.figure(figsize=(5, 10))
-                for p in range(10 * c_sample.numel()):
-                    plt.subplot(10, c_sample.numel(), p + 1)
-                    if args.conditional:
-                        plt.text(
-                            0,
-                            0,
-                            "c={:.2f}".format(c[p].item()),
-                            color="black",
-                            backgroundcolor="white",
-                            fontsize=8,
-                        )
-                    plt.imshow(x[p].view(28, 28).cpu().data.numpy())
-                    plt.axis("off")
+                # plt.figure()
+                # plt.figure(figsize=(5, 10))
+                # for p in range(10 * c_sample.numel()):
+                #     plt.subplot(10, c_sample.numel(), p + 1)
+                #     if args.conditional:
+                #         plt.text(
+                #             0,
+                #             0,
+                #             "c={:.2f}".format(c[p].item()),
+                #             color="black",
+                #             backgroundcolor="white",
+                #             fontsize=8,
+                #         )
+                #     plt.imshow(x[p].view(39, 39).cpu().data.numpy())
+                #     plt.axis("off")
 
-                plt.savefig(
-                    os.path.join(
-                        args.log_root,
-                        str(ts),
-                        "E{:d}I{:d}.png".format(epoch, iteration),
-                    ),
-                    dpi=300,
-                )
-                plt.clf()
-                plt.close("all")
+                # plt.savefig(
+                #     os.path.join(
+                #         args.log_root,
+                #         str(ts),
+                #         "E{:d}I{:d}.png".format(epoch, iteration),
+                #     ),
+                #     dpi=300,
+                # )
+                # plt.clf()
+                # plt.close("all")
 
-        df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
-        g = sns.lmplot(
-            x="x",
-            y="y",
-            hue="label",
-            data=df.groupby("label").head(100),
-            fit_reg=False,
-            legend=True,
-        )
-        g.savefig(
-            os.path.join(args.log_root, str(ts), "E{:d}-Dist.png".format(epoch)),
-            dpi=300,
-        )
+        # df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
+        # g = sns.lmplot(
+            # x="x",
+            # y="y",
+            # hue="label",
+            # data=df.groupby("label").head(100),
+            # fit_reg=False,
+            # legend=True,
+        # )
+        # g.savefig(
+            # os.path.join(args.log_root, str(ts), "E{:d}-Dist.png".format(epoch)),
+            # dpi=300,
+        # )
 
     writer.flush()
 
