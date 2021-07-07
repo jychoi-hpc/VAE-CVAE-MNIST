@@ -16,9 +16,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import MNIST
-from XGC import XGC
 
 from models import VAE
+from XGC import XGC
 
 
 def main(args):
@@ -51,7 +51,8 @@ def main(args):
     with open(os.path.join(logdir, "hyperparameters.yml"), "w") as outfile:
         yaml.dump(vars(args), outfile)
 
-    dataset = XGC()
+    dataset = XGC(extend_angles=args.extend_angles)
+    logging.info(f"There are {len(dataset)} samples in the dataset.")
     data_loader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
 
     def loss_fn(recon_x, x, mean, log_var):
@@ -188,6 +189,7 @@ if __name__ == "__main__":
         choices=["BCE", "MSE"],
     )
     parser.add_argument("--conditional", action="store_true")
+    parser.add_argument("--extend_angles", action="store_true")
 
     args = parser.parse_args()
 
