@@ -117,42 +117,67 @@ def main(args):
                     )
                 )
 
-                # if args.conditional:
-                #     c_sample = torch.linspace(-0.1, 0.1, 7)
-                #     c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
-                #     c = c.to(device)
-                #     z = torch.randn([c.size(0), args.latent_size]).to(device)
-                #     x = vae.inference(z, c=c)
-                # else:
-                #     z = torch.randn([10, args.latent_size]).to(device)
-                #     x = vae.inference(z)
+                # Samples for comparison
+                sample_index = list(range(0, 16395, 16395 // 10))
+                original_images, polar_coord = dataset[sample_index]
+                if args.conditional:
+                    # x = original_images
+                    recon_images, mean, log_var, z = vae(original_images, polar_coord)
+                    # c_sample = torch.linspace(-0.1, 0.1, 7)
+                    # c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
+                    # c = c.to(device)
+                    # z = torch.randn([c.size(0), args.latent_size]).to(device)
+                    # x = vae.inference(z, c=c)
+                else:
+                    raise NotImplementedError
+                    recon_images = vae(original_images)
+                    z = torch.randn([10, args.latent_size]).to(device)
+                    x = vae.inference(z)
 
-                # plt.figure()
-                # plt.figure(figsize=(5, 10))
-                # for p in range(10 * c_sample.numel()):
-                #     plt.subplot(10, c_sample.numel(), p + 1)
-                #     if args.conditional:
-                #         plt.text(
-                #             0,
-                #             0,
-                #             "c={:.2f}".format(c[p].item()),
-                #             color="black",
-                #             backgroundcolor="white",
-                #             fontsize=8,
-                #         )
-                #     plt.imshow(x[p].view(39, 39).cpu().data.numpy())
-                #     plt.axis("off")
+                plt.figure()
+                plt.figure(figsize=(5, 10))
+                for p in range(len(original_images)):
+                    # Original
+                    plt.subplot(len(original_images), 2, 2 * p + 1)
+                    if args.conditional:
+                        plt.title(
+                            "r={:.2f} θ={:.2f}".format(
+                                polar_coord[p, 0],
+                                polar_coord[p, 1],
+                            ),
+                            # color="black",
+                            # backgroundcolor="white",
+                            # fontsize=8,
+                        )
+                    plt.imshow(x[p].view(39, 39).cpu().data.numpy())
+                    plt.axis("off")
 
-                # plt.savefig(
-                #     os.path.join(
-                #         args.log_root,
-                #         str(ts),
-                #         "E{:d}I{:d}.png".format(epoch, iteration),
-                #     ),
-                #     dpi=300,
-                # )
-                # plt.clf()
-                # plt.close("all")
+                    # Recon
+                    plt.subplot(len(original_images), 2, 2 * p + 2)
+                    # plt.title(
+                    #     "r={:.2f} ".format(
+                    #         # args.reconstruction_error,
+                    #         reconstruction_error(
+                    #             original_images[p].view(-1),
+                    #             recon_images[p],
+                    #         ).item(),
+                    #     )
+                    # )
+                    plt.imshow(recon_images[p].view(39, 39).cpu().data.numpy())
+                    plt.axis("off")
+
+                plt.tight_layout()
+                plt.savefig(
+                    os.path.join(
+                        args.log_root,
+                        str(ts),
+                        "E{:d}I{:d}.png".format(epoch, iteration),
+                    ),
+                    dpi=300,
+                    bbox_inches="tight",
+                )
+                plt.clf()
+                plt.close("all")
 
         # df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
         # g = sns.lmplot(
