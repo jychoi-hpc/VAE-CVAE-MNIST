@@ -101,6 +101,8 @@ def main(args):
             break
         for iteration, (x, y) in enumerate(data_loader):
 
+            vae.train()
+
             x = x.to(device)
             # y = y + 0.1 * torch.randn(y.shape)
             y = y.to(device)
@@ -129,6 +131,7 @@ def main(args):
             logs["loss"].append(loss.item())
 
             if iteration % args.print_every == 0 or iteration == len(data_loader) - 1:
+                vae.eval()
                 logging.info(
                     "Epoch {:02d}/{:02d} Batch {:04d}/{:d}, Loss {:9.4f}".format(
                         epoch,
