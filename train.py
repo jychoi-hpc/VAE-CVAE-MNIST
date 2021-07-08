@@ -53,16 +53,21 @@ def main(args):
 
     dataset = XGC(extend_angles=args.extend_angles)
     logging.info(f"There are {len(dataset)} samples in the dataset.")
+
     data_loader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
 
     def loss_fn(recon_x, x, mean, log_var):
         if args.reconstruction_error == "BCE":
             recon_error = F.binary_cross_entropy(
-                recon_x.view(-1, 39 * 39), x.view(-1, 39 * 39), reduction="sum"
+                recon_x.view(-1, 39 * 39),
+                x.view(-1, 39 * 39),
+                reduction="sum",
             )
         elif args.reconstruction_error == "MSE":
             recon_error = F.mse_loss(
-                recon_x.view(-1, 39 * 39), x.view(-1, 39 * 39), reduction="sum"
+                recon_x.view(-1, 39 * 39),
+                x.view(-1, 39 * 39),
+                reduction="sum",
             )
         KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
 
@@ -75,6 +80,15 @@ def main(args):
         conditional=args.conditional,
         num_labels=2 if args.conditional else 0,
     ).to(device)
+
+    # Print info about number of parameters
+    logging.info("-" * 50)
+    num_params = 0
+    for k, v in vae.state_dict().items():
+        logging.info("%50s\t%20s\t%10d" % (k, list(v.shape), v.numel()))
+        num_params += v.numel()
+    logging.info("-" * 50)
+    logging.info("%50s\t%20s\t%10d" % ("Total", "", num_params))
 
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
 
@@ -103,7 +117,11 @@ def main(args):
             #     tracker_epoch[id]["label"] = round(yi.item())
 
             loss = loss_fn(recon_x, x, mean, log_var)
-            writer.add_scalar("Loss/train", loss, epoch * len(data_loader) + iteration)
+            writer.add_scalar(
+                "Loss/train",
+                loss,
+                epoch * len(data_loader) + iteration,
+            )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -113,7 +131,11 @@ def main(args):
             if iteration % args.print_every == 0 or iteration == len(data_loader) - 1:
                 logging.info(
                     "Epoch {:02d}/{:02d} Batch {:04d}/{:d}, Loss {:9.4f}".format(
-                        epoch, args.epochs, iteration, len(data_loader) - 1, loss.item()
+                        epoch,
+                        args.epochs,
+                        iteration,
+                        len(data_loader) - 1,
+                        loss.item(),
                     )
                 )
 
@@ -135,7 +157,7 @@ def main(args):
                     x = vae.inference(z)
 
                 plt.figure()
-                plt.figure(figsize=(5, 10))
+                plt.figure(figsize=(5, 30))
                 for p in range(len(original_images)):
                     # Original
                     plt.subplot(len(original_images), 2, 2 * p + 1)
@@ -150,6 +172,7 @@ def main(args):
                             # fontsize=8,
                         )
                     plt.imshow(x[p].view(39, 39).cpu().data.numpy())
+                    plt.colorbar()
                     plt.axis("off")
 
                     # Recon
@@ -165,6 +188,7 @@ def main(args):
                     # )
                     plt.imshow(recon_images[p].view(39, 39).cpu().data.numpy())
                     plt.axis("off")
+                    plt.colorbar()
 
                 plt.tight_layout()
                 plt.savefig(
