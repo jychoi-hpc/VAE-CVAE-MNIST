@@ -76,6 +76,7 @@ def main(args):
         num_labels=2 if args.conditional else 0,
     ).to(device)
 
+    ## Print model
     print ('-'*50)
     num_params = 0
     for k, v in vae.state_dict().items():
