@@ -76,6 +76,14 @@ def main(args):
         num_labels=2 if args.conditional else 0,
     ).to(device)
 
+    print ('-'*50)
+    num_params = 0
+    for k, v in vae.state_dict().items():
+        print ('%50s\t%20s\t%10d'%(k, list(v.shape), v.numel()))
+        num_params += v.numel()
+    print ('-'*50)
+    print ('%50s\t%20s\t%10d'%('Total', '', num_params))
+
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
 
     logs = defaultdict(list)
@@ -86,6 +94,8 @@ def main(args):
         if args.dry_run and epoch > 0:
             break
         for iteration, (x, y) in enumerate(data_loader):
+            ## Start training
+            vae.train()
 
             x = x.to(device)
             # y = y + 0.1 * torch.randn(y.shape)
@@ -111,6 +121,8 @@ def main(args):
             logs["loss"].append(loss.item())
 
             if iteration % args.print_every == 0 or iteration == len(data_loader) - 1:
+                ## Start evaluation
+                vae.eval()
                 logging.info(
                     "Epoch {:02d}/{:02d} Batch {:04d}/{:d}, Loss {:9.4f}".format(
                         epoch, args.epochs, iteration, len(data_loader) - 1, loss.item()
@@ -131,13 +143,12 @@ def main(args):
                     # z = torch.randn([c.size(0), args.latent_size]).to(device)
                     # x = vae.inference(z, c=c)
                 else:
-                    raise NotImplementedError
-                    recon_images = vae(original_images)
-                    z = torch.randn([10, args.latent_size]).to(device)
-                    x = vae.inference(z)
+                    x = original_images
+                    recon_images, mean, log_var, z = vae(original_images)
+                    #z = torch.randn([10, args.latent_size]).to(device)
+                    #x = vae.inference(z)
 
-                plt.figure()
-                plt.figure(figsize=(5, 10))
+                plt.figure(figsize=(5, 30))
                 for p in range(len(original_images)):
                     # Original
                     plt.subplot(len(original_images), 2, 2 * p + 1)
@@ -152,6 +163,7 @@ def main(args):
                             # fontsize=8,
                         )
                     plt.imshow(x[p].view(39, 39).cpu().data.numpy())
+                    plt.colorbar()
                     plt.axis("off")
 
                     # Recon
@@ -166,6 +178,7 @@ def main(args):
                     #     )
                     # )
                     plt.imshow(recon_images[p].view(39, 39).cpu().data.numpy())
+                    plt.colorbar()
                     plt.axis("off")
 
                 plt.tight_layout()
@@ -205,8 +218,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--learning_rate", type=float, default=0.001)
-    parser.add_argument("--encoder_layer_sizes", type=list, default=[39 * 39, 256])
-    parser.add_argument("--decoder_layer_sizes", type=list, default=[256, 39 * 39])
+    parser.add_argument("--encoder_layer_sizes", type=int, nargs='*', default=[39 * 39, 256])
+    parser.add_argument("--decoder_layer_sizes", type=int, nargs='*', default=[256, 39 * 39])
     parser.add_argument("--latent_size", type=int, default=2)
     parser.add_argument("--print_every", type=int, default=100)
     parser.add_argument("--log_root", type=str, default="logs")
