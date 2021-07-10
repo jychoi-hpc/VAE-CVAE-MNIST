@@ -1,3 +1,6 @@
+import math
+
+import matplotlib.pyplot as plt
 import torch
 
 
@@ -11,3 +14,13 @@ def idx2onehot(idx, n):
     onehot.scatter_(1, idx, 1)
 
     return onehot
+
+
+def plot_batch(batch):
+    N = batch.shape[0]
+    n = math.ceil(math.sqrt(N))
+    for i, image in enumerate(batch):
+        plt.subplot(n, n, i + 1)
+        plt.imshow(image)
+        plt.axis("off")
+    plt.show()

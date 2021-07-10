@@ -18,6 +18,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 
 from models import VAE
+from utils import plot_batch
 from XGC import XGC
 
 
@@ -55,6 +56,9 @@ def main(args):
     logging.info(f"There are {len(dataset)} samples in the dataset.")
 
     data_loader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
+    if args.plot_batch:
+        first_batch = iter(data_loader).next()[0]
+        plot_batch(first_batch)
 
     def loss_fn(recon_x, x, mean, log_var):
         if args.reconstruction_error == "BCE":
@@ -247,6 +251,7 @@ if __name__ == "__main__":
     parser.add_argument("--conditional", action="store_true")
     parser.add_argument("--extend_angles", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--plot-batch", action="store_true")
 
     args = parser.parse_args()
 
