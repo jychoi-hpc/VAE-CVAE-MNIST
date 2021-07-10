@@ -52,7 +52,7 @@ def main(args):
     with open(os.path.join(logdir, "hyperparameters.yml"), "w") as outfile:
         yaml.dump(vars(args), outfile)
 
-    dataset = XGC(extend_angles=args.extend_angles)
+    dataset = XGC(extend_angles=args.extend_angles, coordinate=args.coordinate)
     logging.info(f"There are {len(dataset)} samples in the dataset.")
 
     if args.reconstruction_error == "BCE":
@@ -173,10 +173,10 @@ def main(args):
 
                 # Samples for comparison
                 sample_index = list(range(0, 16395, 16395 // 10))
-                original_images, polar_coord = dataset[sample_index]
+                original_images, coord = dataset[sample_index]
                 if args.conditional:
                     # x = original_images
-                    recon_images, mean, log_var, z = vae(original_images, polar_coord)
+                    recon_images, mean, log_var, z = vae(original_images, coord)
                     # c_sample = torch.linspace(-0.1, 0.1, 7)
                     # c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
                     # c = c.to(device)
@@ -195,9 +195,10 @@ def main(args):
                     plt.subplot(len(original_images), 2, 2 * p + 1)
                     if args.conditional:
                         plt.title(
-                            "r={:.2f} θ={:.2f}".format(
-                                polar_coord[p, 0],
-                                polar_coord[p, 1],
+                            "{:s}:({:.2f}, {:.2f})".format(
+                                args.coordinate,
+                                coord[p, 0],
+                                coord[p, 1],
                             ),
                             # color="black",
                             # backgroundcolor="white",
@@ -269,6 +270,12 @@ if __name__ == "__main__":
         type=str,
         default="BCE",
         choices=["BCE", "MSE"],
+    )
+    parser.add_argument(
+        "--coordinate",
+        type=str,
+        default="cartesian",
+        choices=["cartesian", "polar"],
     )
     parser.add_argument("--conditional", action="store_true")
     parser.add_argument("--extend_angles", action="store_true")

@@ -165,7 +165,7 @@ def read_f0(
     return (Z0, Zif, zmu, zsig, zmin, zmax, zlb)
 
 
-def XGC(extend_angles: bool = False):
+def XGC(extend_angles: bool = False, coordinate: str = "cartesian"):
     """
     Returns TensorDataset, for input into DataLoader
     """
@@ -184,15 +184,20 @@ def XGC(extend_angles: bool = False):
     # z = rz[:, 1]
     # print("Nnodes:", len(rz))
 
-    shifted = rz - rz[0]
-    radius = np.linalg.norm(shifted, axis=1)
-    angles = np.arctan2(shifted[:, 1], shifted[:, 0])
-    coord = np.column_stack((radius, angles))
+    if coordinate == "cartesian":
+        coord = rz
+    elif coordinate == "polar":
+        shifted = rz - rz[0]
+        radius = np.linalg.norm(shifted, axis=1)
+        angles = np.arctan2(shifted[:, 1], shifted[:, 0])
+        coord = np.column_stack((radius, angles))
 
-    if extend_angles:
-        shift_up = np.column_stack((radius, angles + 2 * np.pi))
-        shift_dn = np.column_stack((radius, angles - 2 * np.pi))
-        coord = np.row_stack((coord, shift_up, shift_dn))
+        if extend_angles:
+            shift_up = np.column_stack((radius, angles + 2 * np.pi))
+            shift_dn = np.column_stack((radius, angles - 2 * np.pi))
+            coord = np.row_stack((coord, shift_up, shift_dn))
+    else:
+        raise ValueError
 
     # Pytorch seems to expect a float32 default datatype.
     dataset = TensorDataset(torch.tensor(Zif), torch.tensor(coord, dtype=torch.float32))
