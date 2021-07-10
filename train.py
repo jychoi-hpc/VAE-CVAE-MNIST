@@ -12,7 +12,7 @@ import seaborn as sns
 import torch
 import torch.nn.functional as F
 import yaml
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import MNIST
@@ -55,13 +55,38 @@ def main(args):
     dataset = XGC(extend_angles=args.extend_angles)
     logging.info(f"There are {len(dataset)} samples in the dataset.")
 
-    data_loader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
     if args.reconstruction_error == "BCE":
         recon_error_func = F.binary_cross_entropy
     elif args.reconstruction_error == "MSE":
         recon_error_func = F.mse_loss
     else:
         raise ValueError
+
+    if args.balance:
+        all = dataset[:][0]
+        median = torch.median(all, dim=0, keepdim=True).values
+        indiv_loss = recon_error_func(
+            all,
+            median.expand(len(dataset), -1, -1),
+            reduction="none",
+        )  # shape is (16k, 39, 39)
+        sample_weights = torch.mean(indiv_loss, [1, 2])  # average along dim 1, 2
+        sampler = WeightedRandomSampler(
+            sample_weights,
+            num_samples=len(dataset),
+            replacement=True,
+        )
+        data_loader = DataLoader(
+            dataset=dataset,
+            batch_size=args.batch_size,
+            sampler=sampler,
+        )
+    else:
+        data_loader = DataLoader(
+            dataset=dataset,
+            batch_size=args.batch_size,
+            shuffle=True,
+        )
 
     if args.plot_batch:
         first_batch = iter(data_loader).next()[0]
@@ -248,6 +273,7 @@ if __name__ == "__main__":
     parser.add_argument("--conditional", action="store_true")
     parser.add_argument("--extend_angles", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--balance", action="store_true")
     parser.add_argument("--plot-batch", action="store_true")
 
     args = parser.parse_args()
