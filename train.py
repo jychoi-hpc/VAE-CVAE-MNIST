@@ -204,7 +204,7 @@ def main(args):
                             # backgroundcolor="white",
                             # fontsize=8,
                         )
-                    plt.imshow(x[p].view(39, 39).cpu().data.numpy())
+                    plt.imshow(original_images[p].view(39, 39).cpu().data.numpy())
                     plt.colorbar()
                     plt.axis("off")
 
