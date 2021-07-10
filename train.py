@@ -56,26 +56,23 @@ def main(args):
     logging.info(f"There are {len(dataset)} samples in the dataset.")
 
     data_loader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
+    if args.reconstruction_error == "BCE":
+        recon_error_func = F.binary_cross_entropy
+    elif args.reconstruction_error == "MSE":
+        recon_error_func = F.mse_loss
+    else:
+        raise ValueError
+
     if args.plot_batch:
         first_batch = iter(data_loader).next()[0]
         plot_batch(first_batch)
 
     def loss_fn(recon_x, x, mean, log_var):
-        if args.reconstruction_error == "BCE":
-            recon_error = F.binary_cross_entropy(
-                recon_x.view(-1, 39 * 39),
-                x.view(-1, 39 * 39),
-                reduction="sum",
-            )
-        elif args.reconstruction_error == "MSE":
-            recon_error = F.mse_loss(
-                recon_x.view(-1, 39 * 39),
-                x.view(-1, 39 * 39),
-                reduction="sum",
-            )
-        else:
-            raise ValueError
-
+        recon_error = recon_error_func(
+            recon_x.view(-1),
+            x.view(-1),
+            reduction="sum",
+        )
         KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
 
         return (recon_error + KLD) / x.size(0)
