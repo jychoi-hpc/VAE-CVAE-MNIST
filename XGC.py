@@ -184,37 +184,17 @@ def XGC(extend_angles: bool = False):
     # z = rz[:, 1]
     # print("Nnodes:", len(rz))
 
-    _rz = np.array(rz[:, 0], dtype=complex)
-    _rz.imag = rz[:, 1]
-
-    da = np.zeros_like(rz)  ## list of distance and angle pair
-    for inode in zlb:
-        dist = np.linalg.norm(_rz[inode] - _rz[0])
-        angle = np.angle(_rz[inode] - _rz[0])
-        da[inode, 0] = dist
-        da[inode, 1] = angle
-
-    lx = list()
-    ly = list()
-    for i in range(len(zlb)):
-        lx.append(Zif[i, np.newaxis, :, :])
-        ly.append(da[i, :])
+    shifted = rz - rz[0]
+    radius = np.linalg.norm(shifted, axis=1)
+    angles = np.arctan2(shifted[:, 1], shifted[:, 0])
+    coord = np.column_stack((radius, angles))
 
     if extend_angles:
-        # Adds on a copy of the dataset with all angles shifted up by 2*pi.
-        da[:, -1] += 2 * np.pi
-        for i in range(len(zlb)):
-            lx.append(Zif[i, np.newaxis, :, :])
-            ly.append(da[i, :])
-        # Adds on a copy of the dataset with all angles shifted down by 2*pi.
-        # I subtract by 4pi because the operation does the subtraction in-place.
-        da[:, -1] -= 4 * np.pi
-        for i in range(len(zlb)):
-            lx.append(Zif[i, np.newaxis, :, :])
-            ly.append(da[i, :])
+        shift_up = np.column_stack((radius, angles + 2 * np.pi))
+        shift_dn = np.column_stack((radius, angles - 2 * np.pi))
+        coord = np.row_stack((coord, shift_up, shift_dn))
 
     # Pytorch seems to expect a float32 default datatype.
-    X_full, y_full = torch.tensor(lx).squeeze(), torch.tensor(ly, dtype=torch.float32)
-    dataset = TensorDataset(X_full, y_full)
+    dataset = TensorDataset(torch.tensor(Zif), torch.tensor(coord, dtype=torch.float32))
 
     return dataset
