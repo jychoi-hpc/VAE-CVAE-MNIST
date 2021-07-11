@@ -15,7 +15,6 @@ import yaml
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
-from torchvision.datasets import MNIST
 
 from models import VAE
 from utils import plot_batch
@@ -124,16 +123,12 @@ def main(args):
     logs = defaultdict(list)
 
     for epoch in range(args.epochs):
-
         # tracker_epoch = defaultdict(lambda: defaultdict(dict))
         if args.dry_run and epoch > 0:
             break
         for iteration, (x, y) in enumerate(data_loader):
-
             vae.train()
-
             x = x.to(device)
-            # y = y + 0.1 * torch.randn(y.shape)
             y = y.to(device)
 
             if args.conditional:
@@ -153,14 +148,13 @@ def main(args):
                 loss,
                 epoch * len(data_loader) + iteration,
             )
+            logs["loss"].append(loss.item())
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            logs["loss"].append(loss.item())
-
             if iteration % args.print_every == 0 or iteration == len(data_loader) - 1:
-                vae.eval()
                 logging.info(
                     "Epoch {:02d}/{:02d} Batch {:04d}/{:d}, Loss {:9.4f}".format(
                         epoch,
@@ -171,70 +165,73 @@ def main(args):
                     )
                 )
 
-                # Samples for comparison
-                sample_index = list(range(0, 16395, 16395 // 10))
-                original_images, coord = dataset[sample_index]
-                if args.conditional:
-                    # x = original_images
-                    recon_images, mean, log_var, z = vae(original_images, coord)
-                    # c_sample = torch.linspace(-0.1, 0.1, 7)
-                    # c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
-                    # c = c.to(device)
-                    # z = torch.randn([c.size(0), args.latent_size]).to(device)
-                    # x = vae.inference(z, c=c)
-                else:
-                    raise NotImplementedError
-                    recon_images = vae(original_images)
-                    z = torch.randn([10, args.latent_size]).to(device)
-                    x = vae.inference(z)
-
-                plt.figure()
-                plt.figure(figsize=(5, 30))
-                for p in range(len(original_images)):
-                    # Original
-                    plt.subplot(len(original_images), 2, 2 * p + 1)
+                with torch.no_grad():
+                    vae.eval()
+                    # Samples for comparison
+                    sample_index = list(range(0, 16395, 16395 // 10))
+                    original_images, coord = dataset[sample_index]
                     if args.conditional:
+                        # x = original_images
+                        recon_images, mean, log_var, z = vae(original_images, coord)
+                        # c_sample = torch.linspace(-0.1, 0.1, 7)
+                        # c = (torch.arange(0, 10).long().unsqueeze(1) + c_sample).view(-1, 1)
+                        # c = c.to(device)
+                        # z = torch.randn([c.size(0), args.latent_size]).to(device)
+                        # x = vae.inference(z, c=c)
+                    else:
+                        raise NotImplementedError
+                        recon_images = vae(original_images)
+                        z = torch.randn([10, args.latent_size]).to(device)
+                        x = vae.inference(z)
+
+                    plt.figure()
+                    plt.figure(figsize=(5, 30))
+                    for p in range(len(original_images)):
+                        # Original
+                        plt.subplot(len(original_images), 2, 2 * p + 1)
+                        if args.conditional:
+                            plt.title(
+                                "{:s}:({:.2f}, {:.2f})".format(
+                                    args.coordinate,
+                                    coord[p, 0],
+                                    coord[p, 1],
+                                ),
+                                # color="black",
+                                # backgroundcolor="white",
+                                # fontsize=8,
+                            )
+                        plt.imshow(original_images[p].view(39, 39).cpu().data.numpy())
+                        plt.colorbar()
+                        plt.axis("off")
+
+                        # Recon
+                        plt.subplot(len(original_images), 2, 2 * p + 2)
                         plt.title(
-                            "{:s}:({:.2f}, {:.2f})".format(
-                                args.coordinate,
-                                coord[p, 0],
-                                coord[p, 1],
-                            ),
-                            # color="black",
-                            # backgroundcolor="white",
-                            # fontsize=8,
+                            "{:s}: {:.6f} ".format(
+                                args.reconstruction_error,
+                                recon_error_func(
+                                    original_images[p].view(-1),
+                                    recon_images[p],
+                                    reduction="sum",
+                                ).item(),
+                            )
                         )
-                    plt.imshow(original_images[p].view(39, 39).cpu().data.numpy())
-                    plt.colorbar()
-                    plt.axis("off")
+                        plt.imshow(recon_images[p].view(39, 39).cpu().data.numpy())
+                        plt.axis("off")
+                        plt.colorbar()
 
-                    # Recon
-                    plt.subplot(len(original_images), 2, 2 * p + 2)
-                    # plt.title(
-                    #     "r={:.2f} ".format(
-                    #         # args.reconstruction_error,
-                    #         reconstruction_error(
-                    #             original_images[p].view(-1),
-                    #             recon_images[p],
-                    #         ).item(),
-                    #     )
-                    # )
-                    plt.imshow(recon_images[p].view(39, 39).cpu().data.numpy())
-                    plt.axis("off")
-                    plt.colorbar()
-
-                plt.tight_layout()
-                plt.savefig(
-                    os.path.join(
-                        args.log_root,
-                        str(ts),
-                        "E{:d}I{:d}.png".format(epoch, iteration),
-                    ),
-                    dpi=300,
-                    bbox_inches="tight",
-                )
-                plt.clf()
-                plt.close("all")
+                    plt.tight_layout()
+                    plt.savefig(
+                        os.path.join(
+                            args.log_root,
+                            str(ts),
+                            "E{:d}I{:d}.png".format(epoch, iteration),
+                        ),
+                        dpi=300,
+                        bbox_inches="tight",
+                    )
+                    plt.clf()
+                    plt.close("all")
 
         # df = pd.DataFrame.from_dict(tracker_epoch, orient="index")
         # g = sns.lmplot(
