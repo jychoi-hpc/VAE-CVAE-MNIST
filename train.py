@@ -61,6 +61,7 @@ def main(args):
     else:
         raise ValueError
 
+    arguments_to_dataloader = {"dataset": dataset, "batch_size": args.batch_size}
     if args.balance:
         all = dataset[:][0]
         median = torch.median(all, dim=0, keepdim=True).values
@@ -71,21 +72,14 @@ def main(args):
         )  # shape is (16k, 39, 39)
         sample_weights = torch.mean(indiv_loss, [1, 2])  # average along dim 1, 2
         sampler = WeightedRandomSampler(
-            sample_weights,
+            list(sample_weights),
             num_samples=len(dataset),
             replacement=True,
         )
-        data_loader = DataLoader(
-            dataset=dataset,
-            batch_size=args.batch_size,
-            sampler=sampler,
-        )
+        arguments_to_dataloader["sampler"] = sampler
     else:
-        data_loader = DataLoader(
-            dataset=dataset,
-            batch_size=args.batch_size,
-            shuffle=True,
-        )
+        arguments_to_dataloader["shuffle"] = True
+    data_loader = DataLoader(**arguments_to_dataloader)
 
     if args.plot_batch:
         first_batch = iter(data_loader).next()[0]
