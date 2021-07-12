@@ -165,7 +165,11 @@ def read_f0(
     return (Z0, Zif, zmu, zsig, zmin, zmax, zlb)
 
 
-def XGC(extend_angles: bool = False, coordinate: str = "cartesian"):
+def XGC(
+    extend_angles: bool = False,
+    coordinate: str = "cartesian",
+    extra_channels: bool = False,
+):
     """
     Returns TensorDataset, for input into DataLoader
     """
@@ -199,7 +203,19 @@ def XGC(extend_angles: bool = False, coordinate: str = "cartesian"):
     else:
         raise ValueError
 
+    if extra_channels:
+        # (16k, 1, 39, 39)
+        images = np.expand_dims(Zif, 1)
+        # (16k, 2, 39, 39)
+        ones = np.ones((Zif.shape[0], coord.shape[1], Zif.shape[1], Zif.shape[2]))
+        # (16k, 2, 39, 39) by (16k, 2, 1, 1) = (16k, 2, 39, 39)
+        coords_in_extra_channel = ones * np.expand_dims(coord, axis=(2, 3))
+        # (16k, 3, 39, 39)
+        images = np.concatenate([images, coords_in_extra_channel], axis=1)
+    else:
+        images = torch.tensor(Zif)
+
     # Pytorch seems to expect a float32 default datatype.
-    dataset = TensorDataset(torch.tensor(Zif), torch.tensor(coord, dtype=torch.float32))
+    dataset = TensorDataset(images, torch.tensor(coord, dtype=torch.float32))
 
     return dataset

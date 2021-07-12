@@ -51,7 +51,11 @@ def main(args):
     with open(os.path.join(logdir, "hyperparameters.yml"), "w") as outfile:
         yaml.dump(vars(args), outfile)
 
-    dataset = XGC(extend_angles=args.extend_angles, coordinate=args.coordinate)
+    dataset = XGC(
+        extend_angles=args.extend_angles,
+        coordinate=args.coordinate,
+        extra_channels=args.extra_channels,
+    )
     logging.info(f"There are {len(dataset)} samples in the dataset.")
 
     if args.reconstruction_error == "BCE":
@@ -273,6 +277,7 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--balance", action="store_true")
     parser.add_argument("--plot-batch", action="store_true")
+    parser.add_argument("--extra-channels", action="store_true")
 
     args = parser.parse_args()
 
