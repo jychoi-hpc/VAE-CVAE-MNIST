@@ -263,7 +263,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--reconstruction_error",
         type=str,
-        default="BCE",
+        default="MSE",
         choices=["BCE", "MSE"],
     )
     parser.add_argument(
