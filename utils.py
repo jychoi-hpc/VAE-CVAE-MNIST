@@ -6,20 +6,7 @@ import random
 import adios2 as ad2
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 from tqdm import tqdm
-
-
-def idx2onehot(idx, n):
-
-    assert torch.max(idx).item() < n
-
-    if idx.dim() == 1:
-        idx = idx.unsqueeze(1)
-    onehot = torch.zeros(idx.size(0), n).to(idx.device)
-    onehot.scatter_(1, idx, 1)
-
-    return onehot
 
 
 def plot_batch(batch):

@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-from utils import idx2onehot
-
 
 class VAE(nn.Module):
     def __init__(
