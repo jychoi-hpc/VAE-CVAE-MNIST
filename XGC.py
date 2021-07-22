@@ -34,6 +34,7 @@ def XGC(
     if coordinate == "cartesian":
         coord = rz
     elif coordinate == "polar":
+        raise NotImplementedError
         shifted = rz - rz[0]
         radius = np.linalg.norm(shifted, axis=1)
         angles = np.arctan2(shifted[:, 1], shifted[:, 0])
@@ -47,6 +48,7 @@ def XGC(
         raise ValueError
 
     if extra_channels:
+        raise NotImplementedError
         # (16k, 1, 39, 39)
         images = np.expand_dims(Zif, 1)
         # (16k, 2, 39, 39)
@@ -62,3 +64,17 @@ def XGC(
     dataset = TensorDataset(images, torch.tensor(coord, dtype=torch.float32))
 
     return dataset
+
+
+if __name__ == "__main__":
+    """This just tests the above function"""
+
+    import itertools
+
+    for extend_angles, coordinate, extra_channels in itertools.product(
+        [False],
+        ["cartesian"],
+        [False],
+    ):
+        print(extend_angles, coordinate, extra_channels)
+        XGC(extend_angles, coordinate, extra_channels)
