@@ -44,6 +44,8 @@ def XGC(
     if nodes_for_augmentation:
         Zif, rz = augment_along_fieldlines(Zif, rz, surf_idx, nodes_for_augmentation)
 
+    N, H, W = Zif.shape
+
     if coordinate == "cartesian":
         pass
     elif coordinate == "polar":
@@ -51,14 +53,15 @@ def XGC(
         radius = np.linalg.norm(shifted, axis=1)
         angles = np.arctan2(shifted[:, 1], shifted[:, 0])
         rz = np.column_stack((radius, angles))
-        assert rz.shape == (Zif.shape[0], 2)
+        assert rz.shape == (N, 2)
 
         if extend_angles:
-            raise NotImplementedError
+            # raise NotImplementedError
             shift_up = np.column_stack((radius, angles + 2 * np.pi))
             shift_dn = np.column_stack((radius, angles - 2 * np.pi))
             rz = np.row_stack((rz, shift_up, shift_dn))
-            assert rz.shape == (3 * Zif.shape[0], 2)
+            Zif = np.row_stack((Zif, Zif, Zif))
+            assert rz.shape == (3 * N, 2)
     else:
         raise ValueError
 
@@ -66,12 +69,15 @@ def XGC(
         raise NotImplementedError
         # (16k, 1, 39, 39)
         images = np.expand_dims(Zif, 1)
+        assert images.shape == (N, 1, H, W)
         # (16k, 2, 39, 39)
-        ones = np.ones((Zif.shape[0], coord.shape[1], Zif.shape[1], Zif.shape[2]))
+        ones = np.ones((N, 2, H, W))
         # (16k, 2, 39, 39) by (16k, 2, 1, 1) = (16k, 2, 39, 39)
-        coords_in_extra_channel = ones * np.expand_dims(coord, axis=(2, 3))
+        coords_in_extra_channel = ones * np.expand_dims(Zif, axis=(2, 3))
+        assert coords_in_extra_channel.shape == (N, 2, 39, 39)
         # (16k, 3, 39, 39)
         images = np.concatenate([images, coords_in_extra_channel], axis=1)
+        assert images.shape == (N, 1 + 2, H, W)
     else:
         images = torch.tensor(Zif)
 
@@ -87,7 +93,7 @@ if __name__ == "__main__":
     import itertools
 
     for options in itertools.product(
-        [False],  # extend angles
+        [False, True],  # extend angles
         ["cartesian", "polar"],  # coordinate
         [False],  # extra_channels
         [[], [0, 1, 2, 3, 4, 5]],  # nodes_for_augmentation
