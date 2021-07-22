@@ -1,11 +1,8 @@
-import os
-
-import adios2 as ad2
 import numpy as np
 import torch
 from torch.utils.data import TensorDataset
 
-from utils import read_f0
+from utils import get_everything_from_adios2
 
 
 def XGC(
@@ -16,21 +13,28 @@ def XGC(
     """
     Returns TensorDataset, for input into DataLoader
     """
-    Z0, Zif, zmu, zsig, zmin, zmax, zlb = read_f0(
-        420, expdir="d3d_coarse_v2_colab", iphi=0
-    )
-    Zif = Zif.astype(np.float32)
-    _, nx, ny = Z0.shape
-
-    fname2 = os.path.join("d3d_coarse_v2_colab", "xgc.mesh.bp")
-    with ad2.open(fname2, "r") as f:
-        ## r and z positions of XGC mesh nodes
-        rz = f.read("rz")
-        conn = f.read("nd_connect_list")
-    # r = rz[:, 0]
-    # z = rz[:, 1]
-    # print("Nnodes:", len(rz))
-
+    (
+        Z0,
+        Zif,
+        zmu,
+        zsig,
+        zmin,
+        zmax,
+        zlb,
+        nnode,
+        ncells,
+        rz,
+        conn,
+        psi,
+        nextnode,
+        epsilon,
+        node_vol,
+        node_vol_nearest,
+        psi_surf,
+        surf_idx,
+        surf_len,
+        theta,
+    ) = get_everything_from_adios2()
     if coordinate == "cartesian":
         coord = rz
     elif coordinate == "polar":
