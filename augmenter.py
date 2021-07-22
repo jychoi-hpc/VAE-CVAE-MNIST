@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from tqdm import tqdm
 
 from utils import get_everything_from_adios2
 
@@ -29,7 +28,7 @@ def augment_along_fieldlines(
     coords = []
     # This speeds up the lookups in the loop
     train_indices = set(train_indices)
-    for fieldline in tqdm(surf_idx):
+    for fieldline in surf_idx:
         fieldline = np.trim_zeros(fieldline)
         for (first, second) in zip(fieldline, fieldline[1:]):
             if first in train_indices and second in train_indices:
