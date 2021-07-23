@@ -5,7 +5,7 @@ from torch.utils.data import TensorDataset
 from utils import get_everything_from_adios2
 
 
-def XGC(
+def XGCDataset(
     extend_angles: bool = False,
     coordinate: str = "cartesian",
     extra_channels: bool = False,
@@ -95,4 +95,4 @@ if __name__ == "__main__":
         # [[], [0, 1, 2, 3, 4, 5]],  # nodes_for_augmentation
     ):
         print(*options)
-        dataset = XGC(*options)
+        dataset = XGCDataset(*options)

@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from augmenter import augmented_dataset_along_fieldlines
 from utils import get_everything_from_adios2
-from XGC import XGC
+from XGC import XGCDataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=0)
@@ -61,7 +61,7 @@ writer = SummaryWriter(log_dir=tbdir)
 with open(os.path.join(logdir, "hyperparameters.yml"), "w") as outfile:
     yaml.dump(vars(args), outfile)
 
-dataset = XGC(
+dataset = XGCDataset(
     # extend_angles=args.extend_angles,
     coordinate=args.coordinate,
     # extra_channels=args.extra_channels,

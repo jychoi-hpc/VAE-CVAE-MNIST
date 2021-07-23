@@ -4,7 +4,7 @@ from torch.utils.data import TensorDataset
 from tqdm import tqdm
 
 from utils import get_everything_from_adios2
-from XGC import XGC
+from XGC import XGCDataset
 
 
 def augmented_dataset_along_fieldlines(
