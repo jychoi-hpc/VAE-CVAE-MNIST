@@ -1,21 +1,19 @@
 import numpy as np
 import torch
+from torch.utils.data import TensorDataset
+from tqdm import tqdm
 
 from utils import get_everything_from_adios2
+from XGC import XGC
 
 
-def augment_along_fieldlines(
-    Zif,
-    rz,
-    surf_idx,
-    train_indices,
+def augmented_dataset_along_fieldlines(
+    dataset,
+    fieldlines,
     subdivisions: int = 2,
 ):
     """
-    Zif is original data,
-    rz is coordinates of original data,
     surf_idx is an array of the fieldlines
-    train_indices is an array of indices
 
     Between any two neighbors on a fieldline, add in subdivisions-1 many images.
 
@@ -26,30 +24,40 @@ def augment_along_fieldlines(
     # Might be faster to preallocate the array.
     imgs = []
     coords = []
-    # This speeds up the lookups in the loop
-    train_indices = set(train_indices)
-    for fieldline in surf_idx:
+    nodeids = dataset[:][-1].tolist()
+
+    reindex = {nodeid: nodeids.index(nodeid) for nodeid in nodeids}
+
+    # Make this a set to speed up lookups in the loop
+    set_nodeids = set(nodeids)
+
+    for fieldline in tqdm(fieldlines):
         fieldline = np.trim_zeros(fieldline)
         for (first, second) in zip(fieldline, fieldline[1:]):
-            if first in train_indices and second in train_indices:
-                avg = np.mean(Zif[[first, second]], axis=0)
-                coord = np.mean(rz[[first, second]], axis=0)
+            if first in set_nodeids and second in set_nodeids:
+                first = reindex[first]
+                second = reindex[second]
+                stacked_img = torch.stack((dataset[first][0], dataset[second][0]))
+                stacked_coord = torch.stack((dataset[first][1], dataset[second][1]))
+                img = torch.mean(stacked_img, axis=0)
+                coord = torch.mean(stacked_coord, axis=0)
+                assert img.shape == (39, 39)
                 assert coord.shape == (2,)
-                imgs.append(avg)
+                imgs.append(img)
                 coords.append(coord)
 
-    imgs = np.stack(imgs)
-    coords = np.stack(coords)
-    imgs = np.concatenate((Zif, imgs))
-    coords = np.concatenate((rz, coords))
-
-    return imgs, coords
+    return TensorDataset(
+        torch.stack(imgs),  # imgs
+        torch.stack(coords),  # coords
+        torch.tensor([-1] * len(imgs)),  # set nodeid of synthetic data to -1
+    )
 
 
 if __name__ == "__main__":
     """
     This just tests the above code.
     """
+
     (
         Z0,
         Zif,
@@ -79,9 +87,22 @@ if __name__ == "__main__":
     W = 39
     assert Zif.shape == (nnode, H, W)
 
-    test_split = 0.8
-    all_indices = torch.randperm(nnode)
-    train_indices = all_indices[: int(test_split * nnode)].tolist()
-    test_indices = all_indices[int(test_split * nnode) :].tolist()
+    dataset = XGC()
+    print("Augmenting on whole dataset")
+    augmented_dataset = augmented_dataset_along_fieldlines(
+        dataset=dataset,
+        fieldlines=surf_idx,
+    )
 
-    imgs, coords = augment_along_fieldlines(Zif, rz, surf_idx, train_indices)
+    if len(dataset) == nnode:
+        # If we use the full XGC dataset, there are no broken pairs, and we can calculate exactly how many images are being added.
+        assert len(augmented_dataset) == sum(np.count_nonzero(surf_idx, axis=1) - 1)
+
+    from torch.utils.data import Subset
+
+    subset = Subset(dataset, indices=range(20, 40))
+    print("Augmenting on small subset")
+    augmented_dataset = augmented_dataset_along_fieldlines(
+        dataset=subset,
+        fieldlines=surf_idx,
+    )
