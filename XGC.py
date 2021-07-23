@@ -75,8 +75,8 @@ def XGC(
         images = Zif
 
     dataset = TensorDataset(
-        torch.tensor(images),  # images
-        torch.tensor(coords),  # coordinates
+        torch.tensor(images, dtype=torch.float),  # images
+        torch.tensor(coords, dtype=torch.float),  # coordinates
         torch.tensor(range(N)),  # nodeid
     )
 
