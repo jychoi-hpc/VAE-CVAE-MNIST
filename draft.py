@@ -201,17 +201,19 @@ writer.flush()
 
 # Eval loop
 model.eval()
+# A metric accepts 2 tensors of shape (N, H, W) and should return a loss tensor of shape (N,)
 metrics = {
-    "MSE": lambda x, y: F.mse_loss(x, y, reduction="none"),
-    "BCE": lambda x, y: F.binary_cross_entropy(x, y, reduction="none"),
+    "MSE": lambda x, y: torch.mean(F.mse_loss(x, y, reduction="none"), dim=[1, 2]),
+    "BCE": lambda x, y: torch.mean(
+        F.binary_cross_entropy(x, y, reduction="none"), dim=[1, 2]
+    ),
+    "MAX": lambda x, y: torch.amax(torch.abs(x - y), dim=[1, 2]),
 }
 with torch.no_grad():
     img, coord, nodeid = test_data[:]
     recon_img, mu, logvar = model(img)
     for name, metric in metrics.items():
-        pixelwise_loss = metric(img, recon_img)
-        assert pixelwise_loss.shape == img.shape
-        loss = torch.mean(pixelwise_loss, axis=[1, 2])
+        loss = metric(img, recon_img)
         assert loss.shape == (img.shape[0],)
 
         # Make a histogram of the errors.
@@ -230,6 +232,7 @@ with torch.no_grad():
         plt.figure()
         plt.title(f"{name} Mean: {torch.mean(loss).item():.5f}")
         plt.scatter(nodeid.tolist(), loss.tolist())
+        plt.axhline(torch.mean(loss).item(), color="k", linestyle="dashed", linewidth=1)
         plt.xlabel("nodeid")
         plt.savefig(
             os.path.join(args.log_root, str(ts), f"{name}_scatter.png"),
