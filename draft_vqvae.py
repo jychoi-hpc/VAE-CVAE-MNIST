@@ -130,8 +130,8 @@ if args.augment:
 #     plot_batch(first_batch)
 
 # This is just a basic data_loader, without weighted resampling.
-train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True)
-test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True)
+train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, pin_memory=True)
+test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True, pin_memory=True)
 
 """
 TODO: Input your model here
