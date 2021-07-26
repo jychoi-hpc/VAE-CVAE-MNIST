@@ -153,7 +153,7 @@ model = VQVAE(num_channels=1, num_hiddens=128, num_residual_layers=2, num_residu
             decoder_layer_sizes=[]).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=100)
 
 def loss_fn(recon_img, img, mu, logvar):
     """
@@ -188,7 +188,7 @@ The internals of the training loop need to be fixed depending on the loss fcn an
 # Training loop
 model.train()
 for epoch in range(args.epochs):
-    logging.info(f"Training Epoch {epoch}/{args.epochs}")
+    logging.info(f"Training Epoch {epoch}/{args.epochs} LR: {optimizer.param_groups[0]['lr']:g}")
     loss_sum = 0.0
     t0 = time.time()
     for iter, (img, coord, nodeid) in enumerate(train_loader):
@@ -216,7 +216,8 @@ for epoch in range(args.epochs):
 
         if (iter+1)%100 == 0:
             print ('==> %d/%d/%d loss: %g time: %g'%(epoch, iter, len(train_loader), loss.item(), time.time()-t0))
-
+    
+    scheduler.step(loss_sum)
 writer.flush()
 
 
