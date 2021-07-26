@@ -212,7 +212,9 @@ for epoch in range(args.epochs):
         loss.backward()
         optimizer.step()
 
-    print ('==> %d/%d loss sum: %g'%(epoch, args.epochs, loss_sum))
+        if (iter+1)%100 == 0:
+            print ('==> %d/%d/%d loss sum: %g'%(epoch, iter, len(train_loader), loss.item()))
+
 writer.flush()
 
 
