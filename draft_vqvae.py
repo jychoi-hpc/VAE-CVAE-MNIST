@@ -143,6 +143,7 @@ I assume decode looks like:
 """
 from models import YourModel
 from vqvae import VQVAE
+import time
 
 # model = YourModel().to(device)
 model = VQVAE(num_channels=1, num_hiddens=128, num_residual_layers=2, num_residual_hiddens=32,
@@ -189,6 +190,7 @@ model.train()
 for epoch in range(args.epochs):
     logging.info(f"Training Epoch {epoch}/{args.epochs}")
     loss_sum = 0.0
+    t0 = time.time()
     for iter, (img, coord, nodeid) in enumerate(train_loader):
         nb, nx, ny = img.shape
         img = img.view(nb, 1, nx, ny)
@@ -213,7 +215,7 @@ for epoch in range(args.epochs):
         optimizer.step()
 
         if (iter+1)%100 == 0:
-            print ('==> %d/%d/%d loss sum: %g'%(epoch, iter, len(train_loader), loss.item()))
+            print ('==> %d/%d/%d loss: %g time: %g'%(epoch, iter, len(train_loader), loss.item(), time.time()-t0))
 
 writer.flush()
 
