@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 import yaml
-from torch.utils.data import ConcatDataset, DataLoader, random_split
+from torch.utils.data import ConcatDataset, DataLoader, WeightedRandomSampler, random_split
 from torch.utils.tensorboard import SummaryWriter
 
 from augmenter import augmented_dataset_along_fieldlines
@@ -30,7 +30,11 @@ parser.add_argument(
 parser.add_argument("--plot-batch", action="store_true")
 parser.add_argument("--train-size", type=float, default=0.8)
 parser.add_argument("--augment", action="store_true")
+parser.add_argument("--balance", action="store_true")
 args = parser.parse_args()
+
+if args.balance and args.augment:
+    raise NotImplementedError("You should only use one option for now")
 
 torch.manual_seed(args.seed)
 if torch.cuda.is_available():
@@ -105,32 +109,31 @@ if args.augment:
     )
     train_data = ConcatDataset((train_data, augmented_dataset))
 
-# arguments_to_dataloader = {"dataset": dataset, "batch_size": args.batch_size}
-# if args.balance:
-#     all = dataset[:][0]
-#     median = torch.median(all, dim=0, keepdim=True).values
-#     indiv_loss = recon_error_func(
-#         all,
-#         median.expand(len(dataset), -1, -1),
-#         reduction="none",
-#     )  # shape is (16k, 39, 39)
-#     sample_weights = torch.mean(indiv_loss, [1, 2])  # average along dim 1, 2
-#     sampler = WeightedRandomSampler(
-#         list(sample_weights),
-#         num_samples=len(dataset),
-#         replacement=True,
-#     )
-#     arguments_to_dataloader["sampler"] = sampler
-# else:
-#     arguments_to_dataloader["shuffle"] = True
-# data_loader = DataLoader(**arguments_to_dataloader)
-
-# if args.plot_batch:
-#     first_batch = iter(data_loader).next()[0]
-#     plot_batch(first_batch)
+arguments_to_train_loader = {"dataset": train_data, "batch_size": args.batch_size, "pin_memory": True}
+if args.balance:
+    all = train_data[:][0]
+    median = torch.median(all, dim=0, keepdim=True).values
+    indiv_loss = F.mse_loss(
+        all,
+        median.expand(len(train_data), -1, -1),
+        reduction="none",
+    )
+    assert indiv_loss.shape == (N, 39, 39)
+    sample_weights = torch.mean(indiv_loss, [1, 2])
+    assert sample_weights.shape == (N,)
+    sampler = WeightedRandomSampler(
+        list(sample_weights),
+        num_samples=len(train_data),
+        replacement=True,
+    )
+    arguments_to_train_loader["sampler"] = sampler
+else:
+    arguments_to_train_loader["shuffle"] = True
+logging.info(f"Train loader options: {arguments_to_train_loader}")
+train_loader = DataLoader(**arguments_to_train_loader)
 
 # This is just a basic data_loader, without weighted resampling.
-train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, pin_memory=True)
+train_loader = DataLoader(**arguments_to_train_loader)
 test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True, pin_memory=True)
 
 """
