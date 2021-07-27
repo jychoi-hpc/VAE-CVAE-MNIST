@@ -31,6 +31,7 @@ parser.add_argument("--plot-batch", action="store_true")
 parser.add_argument("--train-size", type=float, default=0.8)
 parser.add_argument("--augment", action="store_true")
 parser.add_argument("--balance", action="store_true")
+parser.add_argument("--condition", action="store_true")
 args = parser.parse_args()
 
 if args.balance and args.augment:
@@ -152,7 +153,7 @@ import time
 model = VQVAE(num_channels=1, num_hiddens=128, num_residual_layers=2, num_residual_hiddens=32,
             num_embeddings=512, embedding_dim=16, 
             commitment_cost=0.25, decay=0.99, rescale=None, learndiff=None, 
-            shaconv=None, grid=None, conditional=None, decoder_padding=[1,1,0], da_conditional=True,
+            shaconv=None, grid=None, conditional=None, decoder_padding=[1,1,0], da_conditional=args.condition,
             decoder_layer_sizes=[]).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
@@ -198,7 +199,7 @@ for epoch in range(args.epochs):
         nb, nx, ny = img.shape
         img = img.view(nb, 1, nx, ny)
         img = img.to(device)
-        coord = coord.to(device)
+        coord = None if not args.condition else coord.to(device)
         
         vq_loss, recon_img, perplexity, dloss = model(img, coord)
         recon_error = F.mse_loss(recon_img, img)
@@ -239,7 +240,7 @@ with torch.no_grad():
     nb, nx, ny = img.shape
     img = img.view(nb, 1, nx, ny)
     img = img.to(device)
-    coord = coord.to(device)
+    coord = None if not args.condition else coord.to(device)
 
     vq_loss, recon_img, perplexity, dloss = model(img, coord)
     nb, nc, nx, ny = img.shape
